@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=conduit
+      - POSTGRES_PASSWORD=conduit
+      - POSTGRES_DB=conduit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    image: node:20
+    platform: linux/amd64
+    working_dir: /usr/src/app
+    volumes:
+      - ./app_under_test/backend:/usr/src/app
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npx nx serve api"
+    environment:
+      - DATABASE_URL=postgresql://conduit:conduit@postgres:5432/conduit?schema=public
+      - HOST=0.0.0.0
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+
+  frontend:
+    image: node:18
+    working_dir: /usr/src/app
+    volumes:
+      - ./app_under_test/frontend:/usr/src/app
+    command: sh -c "npm install && npm start"
+    environment:
+      - HOST=0.0.0.0
+    ports:
+      - "4100:4100"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
